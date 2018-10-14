@@ -129,6 +129,7 @@ class _MyHomePageState extends State<MyHomePage> {
       title: new Text(widget.title),
     );
   }
+
 }
 
 Future<String> loadAsset(String assetName) async {
