@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'dart:async' show Future;
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 void main() => runApp(new MyApp());
 
@@ -36,33 +35,68 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  void _onNewGoalTapped() async {
+    final textController = TextEditingController();
+    await showDialog(
+        context: context,
+        child: new AlertDialog(
+          content: new Row(
+            children: <Widget>[
+              new Expanded(
+                  child: new TextField(
+                autofocus: true,
+                decoration: new InputDecoration(
+                  labelText: 'My Goal',
+                  hintText: 'Conquer the world',
+                ),
+                controller: textController,
+              ))
+            ],
+          ),
+          actions: <Widget>[
+            new FlatButton(
+                child: const Text('CANCEL'),
+                onPressed: () {
+                  Navigator.pop(context);
+                }),
+            new FlatButton(
+                child: const Text('SUBMIT'),
+                onPressed: () {
+                  Navigator.pop(context);
+                  Firestore.instance.collection('goals').add({"name": textController.text});
+                })
+          ],
+        ));
+    textController.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     switch (_pageIndex) {
       case 0:
         return new Scaffold(
-//          appBar: _buildTopBar(),
-          body: _buildHome(),
-          bottomNavigationBar: _buildBottomNavBar(),
+          appBar: _buildTopBar(context),
+          body: _buildHome(context),
+          bottomNavigationBar: _buildBottomNavBar(context),
         );
 
       case 1:
         return new Scaffold(
-//          appBar: _buildTopBar(),
-          body: _buildGoals(),
-          bottomNavigationBar: _buildBottomNavBar(),
+          appBar: _buildTopBar(context),
+          body: _buildGoals(context),
+          bottomNavigationBar: _buildBottomNavBar(context),
         );
 
       case 2:
         return new Scaffold(
-//          appBar: _buildTopBar(),
-          body: _buildMe(),
-          bottomNavigationBar: _buildBottomNavBar(),
+          appBar: _buildTopBar(context),
+          body: _buildMe(context),
+          bottomNavigationBar: _buildBottomNavBar(context),
         );
     }
   }
 
-  Widget _buildHome() {
+  Widget _buildHome(BuildContext context) {
     return new Scaffold(
         body: new Align(
       child: new Padding(
@@ -70,7 +104,7 @@ class _MyHomePageState extends State<MyHomePage> {
         child: new Column(
           children: <Widget>[
             new Text(
-                'Home',
+              'Home',
               style: TextStyle(
                 fontSize: 20.0,
               ),
@@ -78,7 +112,7 @@ class _MyHomePageState extends State<MyHomePage> {
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: new Image(
-                  image: AssetImage('assets/kitten_domination.jpg'),
+                image: AssetImage('assets/kitten_domination.jpg'),
               ),
             ),
           ],
@@ -87,15 +121,15 @@ class _MyHomePageState extends State<MyHomePage> {
     ));
   }
 
-  Widget _buildGoals() {
+  Widget _buildGoals(BuildContext context) {
     return new Scaffold(
-      body: new Center(
-        child: new Text('Goals'),
-      ),
+      body: _buildGoalsBody(context),
+      floatingActionButton:
+          new FloatingActionButton(onPressed: _onNewGoalTapped),
     );
   }
 
-  Widget _buildMe() {
+  Widget _buildMe(BuildContext context) {
     return new Scaffold(
       body: new Center(
         child: new Text('Me'),
@@ -103,7 +137,7 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  BottomNavigationBar _buildBottomNavBar() {
+  BottomNavigationBar _buildBottomNavBar(BuildContext context) {
     return new BottomNavigationBar(
       currentIndex: _pageIndex,
       items: [
@@ -124,14 +158,65 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  AppBar _buildTopBar() {
+  AppBar _buildTopBar(BuildContext context) {
     return new AppBar(
       title: new Text(widget.title),
     );
   }
 
+  Widget _buildGoalsBody(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: Firestore.instance.collection('goals').snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return LinearProgressIndicator();
+
+        return _buildList(context, snapshot.data.documents);
+      },
+    );
+  }
+
+  Widget _buildList(BuildContext context, List<DocumentSnapshot> snapshot) {
+    return ListView(
+      padding: const EdgeInsets.only(top: 20.0),
+      children: snapshot.map((data) => _buildListItem(context, data)).toList(),
+    );
+  }
+
+  Widget _buildListItem(BuildContext context, DocumentSnapshot data) {
+    final record = Goal.fromSnapshot(data);
+
+    return Padding(
+      key: ValueKey(record.name),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey),
+          borderRadius: BorderRadius.circular(5.0),
+        ),
+        child: ListTile(
+          title: Text(record.name),
+          trailing: Text(record.deadline.toString()),
+          onTap: () => print(record),
+        ),
+      ),
+    );
+  }
 }
 
-Future<String> loadAsset(String assetName) async {
-  return await rootBundle.loadString('assets/' + assetName);
+class Goal {
+  final String name;
+  final String deadline;
+  final DocumentReference reference;
+
+  Goal.fromMap(Map<String, dynamic> map, {this.reference})
+      : assert(map['name'] != null),
+        name = map['name'],
+        deadline =
+            (map['dateTime'] != null) ? map['dateTime'].toString() : 'anytime';
+
+  Goal.fromSnapshot(DocumentSnapshot snapshot)
+      : this.fromMap(snapshot.data, reference: snapshot.reference);
+
+  @override
+  String toString() => "Record<$name:$deadline>";
 }
