@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/services.dart';
 
 void main() => runApp(new MyApp());
+
 
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.
@@ -26,8 +28,14 @@ class MyHomePage extends StatefulWidget {
   _MyHomePageState createState() => new _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMixin {
+
+  Animation animation;
+  AnimationController animationController;
+
   int _pageIndex = 0;
+
+  static const platform = const MethodChannel('flutter.hortonville.com.channel');
 
   void _onBottomBarTapped(int i) {
     setState(() {
@@ -63,11 +71,37 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: const Text('SUBMIT'),
                 onPressed: () {
                   Navigator.pop(context);
-                  Firestore.instance.collection('goals').add({"name": textController.text});
+                  var goal = textController.text;
+                  Firestore.instance.collection('goals').add({"name": goal});
+                  try {
+                    platform.invokeMethod('scheduleNotification', goal);
+                  } on PlatformException catch (e) {
+                    print(e);
+                  }
                 })
           ],
         ));
     textController.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    animationController = AnimationController(
+        duration: Duration(milliseconds: 200),
+        vsync: this,
+    );
+    
+    animation = Tween(
+      begin: 0.0,
+      end: 500.0,
+    )
+        .animate(animationController)
+    ..addListener(() {
+      setState(() {
+
+      });
+    });
   }
 
   @override

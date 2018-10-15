@@ -12,6 +12,7 @@ class Database {
     db = await sqflite.openDatabase(path);
     await db.execute("CREATE TABLE Pictures(id INTEGER PRIMARY KEY, name TEXT);");
     await db.execute("CREATE UNIQUE INDEX id ON Pictures(id);");
+    await db.execute("CREATE TABLE Notifications(key TEXT PRIMARY KEY, ");
 
     var urls = ["https://images.pexels.com/photos/1000445/pexels-photo-1000445.jpeg",
     "https://images.pexels.com/photos/208165/pexels-photo-208165.jpeg",
