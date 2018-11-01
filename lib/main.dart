@@ -1,9 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart';
 
 void main() => runApp(new MyApp());
-
 
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.
@@ -28,14 +29,15 @@ class MyHomePage extends StatefulWidget {
   _MyHomePageState createState() => new _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMixin {
-
+class _MyHomePageState extends State<MyHomePage>
+    with SingleTickerProviderStateMixin {
   Animation animation;
   AnimationController animationController;
 
   int _pageIndex = 0;
 
-  static const platform = const MethodChannel('flutter.hortonville.com.channel');
+  static const platform =
+  const MethodChannel('flutter.hortonville.com.channel');
 
   void _onBottomBarTapped(int i) {
     setState(() {
@@ -52,13 +54,14 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
             children: <Widget>[
               new Expanded(
                   child: new TextField(
-                autofocus: true,
-                decoration: new InputDecoration(
-                  labelText: 'My Goal',
-                  hintText: 'Conquer the world',
-                ),
-                controller: textController,
-              ))
+                    autofocus: true,
+                    decoration: new InputDecoration(
+                      labelText: 'My Goal',
+                      hintText: 'Big Hairy Audacious Goal',
+                    ),
+                    controller: textController,
+                  )),
+
             ],
           ),
           actions: <Widget>[
@@ -68,7 +71,7 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
                   Navigator.pop(context);
                 }),
             new FlatButton(
-                child: const Text('SUBMIT'),
+                child: const Text('ADD'),
                 onPressed: () {
                   Navigator.pop(context);
                   var goal = textController.text;
@@ -84,24 +87,44 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
     textController.dispose();
   }
 
-  @override
-  void initState() {
-    super.initState();
-    animationController = AnimationController(
-        duration: Duration(milliseconds: 200),
-        vsync: this,
-    );
-    
-    animation = Tween(
-      begin: 0.0,
-      end: 500.0,
-    )
-        .animate(animationController)
-    ..addListener(() {
-      setState(() {
+  void _onGoalHeld(String name) async {
+    final textController = TextEditingController();
+    await showDialog(
+        context: context,
+        child: new AlertDialog(
+          content: new Row(
+            children: <Widget>[
+              new Expanded(
+                  child: new Text('Delete Goal')
+              ),
 
-      });
-    });
+            ],
+          ),
+          actions: <Widget>[
+            new FlatButton(
+                child: const Text('CANCEL'),
+                onPressed: () {
+                  Navigator.pop(context);
+                }),
+            new FlatButton(
+                child: const Text('REMOVE'),
+                onPressed: () async {
+                  Navigator.pop(context);
+
+//                  QuerySnapshot q;
+//                  q.documents.rem
+//
+//                  Firestore.instance.collection('goals').snapshots().forEach((snapshot) => {
+//
+//                    snapshot.documents;
+//
+//                  });
+
+
+                })
+          ],
+        ));
+    textController.dispose();
   }
 
   @override
@@ -133,33 +156,35 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
   Widget _buildHome(BuildContext context) {
     return new Scaffold(
         body: new Align(
-      child: new Padding(
-        padding: EdgeInsets.only(top: 40.0),
-        child: new Column(
-          children: <Widget>[
-            new Text(
-              'Home',
-              style: TextStyle(
-                fontSize: 20.0,
-              ),
+          child: new Padding(
+            padding: EdgeInsets.only(top: 40.0),
+            child: new Column(
+              children: <Widget>[
+                new Text(
+                  'Home',
+                  style: TextStyle(
+                    fontSize: 20.0,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: new Image(
+                    image: AssetImage('assets/kitten_domination.jpg'),
+                  ),
+                ),
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: new Image(
-                image: AssetImage('assets/kitten_domination.jpg'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ));
+          ),
+        ));
   }
 
   Widget _buildGoals(BuildContext context) {
     return new Scaffold(
       body: _buildGoalsBody(context),
-      floatingActionButton:
-          new FloatingActionButton(onPressed: _onNewGoalTapped),
+      floatingActionButton: new FloatingActionButton(
+        onPressed: _onNewGoalTapped,
+        child: new Icon(Icons.add),
+      ),
     );
   }
 
@@ -230,7 +255,8 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
         child: ListTile(
           title: Text(record.name),
           trailing: Text(record.deadline.toString()),
-          onTap: () => print(record),
+          //TODO CHANGE THE ACTION ON THIS LONG PRESS
+          onLongPress: _onNewGoalTapped,
         ),
       ),
     );
@@ -246,7 +272,7 @@ class Goal {
       : assert(map['name'] != null),
         name = map['name'],
         deadline =
-            (map['dateTime'] != null) ? map['dateTime'].toString() : 'anytime';
+        (map['dateTime'] != null) ? map['dateTime'].toString() : 'anytime';
 
   Goal.fromSnapshot(DocumentSnapshot snapshot)
       : this.fromMap(snapshot.data, reference: snapshot.reference);
